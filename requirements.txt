@@ -6,3 +6,4 @@ Pillow
 matplotlib
 scikit-image
 opencv-python
+python-3.11
