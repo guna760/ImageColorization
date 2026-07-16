@@ -7,3 +7,5 @@ matplotlib
 scikit-image
 opencv-python
 python-3.11
+tensorflow-intel
+pywin32
