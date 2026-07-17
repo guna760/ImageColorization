@@ -3,7 +3,7 @@ import numpy as np
 
 from tensorflow.keras.models import load_model
 
-model = load_model("models/colorization_model.keras")
+model = load_model("models/colorization_model.h5")
 
 img = cv2.imread("dataset/test/test.jpg")
 

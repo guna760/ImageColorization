@@ -18,10 +18,10 @@ history = model.fit(
     X_train,
     Y_train,
     validation_data=(X_val, Y_val),
-    epochs=50,
-    batch_size=4
+    epochs= 1,
+    batch_size=1
 )
 
-model.save("models/colorization_model.keras")
+model.save("models/colorization_model.h5")
 
 print("Training Completed Successfully!")

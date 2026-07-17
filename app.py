@@ -7,7 +7,7 @@ from tensorflow.keras.models import load_model
 # -----------------------------
 # Load Trained Model
 # -----------------------------
-model = load_model("models/colorization_model.keras")
+model = load_model("models/colorization_model.h5")
 
 IMG_SIZE = 128
 
