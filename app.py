@@ -3,97 +3,96 @@ import cv2
 import numpy as np
 from PIL import Image
 from tensorflow.keras.models import load_model
+from io import BytesIO
 
 # -----------------------------
-# Load Trained Model
+# Configuration
 # -----------------------------
-model = load_model("models/colorization_model.h5")
-
 IMG_SIZE = 128
 
-st.set_page_config(page_title="Image Colorization", layout="wide")
+st.set_page_config(
+    page_title="Image Colorization",
+    layout="wide"
+)
 
-st.title("🎨 Black & White Image Colorization using Deep Learning")
-st.write("Upload a grayscale or color image. The model will generate a colorized version.")
+st.title("🎨 Black & White Image Colorization")
+st.write("Upload a grayscale image to generate its colorized version.")
 
+# -----------------------------
+# Load Model
+# -----------------------------
+@st.cache_resource
+def load_colorization_model():
+    return load_model("models/colorization_model.h5", compile=False)
+
+model = load_colorization_model()
+
+# -----------------------------
+# Upload Image
+# -----------------------------
 uploaded_file = st.file_uploader(
-    "Choose an Image",
+    "Choose an image",
     type=["jpg", "jpeg", "png"]
 )
 
 if uploaded_file is not None:
 
-    # -----------------------------
-    # Read Image
-    # -----------------------------
+    # Read image
     image = Image.open(uploaded_file).convert("RGB")
-
     original = np.array(image)
 
-    # Resize according to model input
-    img = cv2.resize(original, (IMG_SIZE, IMG_SIZE))
+    # Resize for model
+    resized = cv2.resize(original, (IMG_SIZE, IMG_SIZE))
 
-    # -----------------------------
-    # Convert RGB -> LAB
-    # -----------------------------
-    lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
+    # RGB -> LAB
+    lab = cv2.cvtColor(resized, cv2.COLOR_RGB2LAB)
 
-    # Extract L channel
-    L = lab[:, :, 0]
+    # L channel
+    L = lab[:, :, 0].astype(np.float32)
 
     # Normalize
-    L_input = L.astype("float32") / 255.0
+    L_input = L / 255.0
+    L_input = L_input.reshape(1, IMG_SIZE, IMG_SIZE, 1)
 
-    # Model Input
-    input_img = L_input.reshape(1, IMG_SIZE, IMG_SIZE, 1)
-
-    # -----------------------------
     # Prediction
-    # -----------------------------
-    prediction = model.predict(input_img, verbose=0)
+    pred = model.predict(L_input, verbose=0)[0]
 
-    prediction = prediction[0]
+    # Denormalize AB channels
+    pred = pred * 128
 
-    # Convert predicted AB values
-    prediction = prediction * 128
+    # Create LAB image
+    output_lab = np.zeros((IMG_SIZE, IMG_SIZE, 3), dtype=np.float32)
 
-    # -----------------------------
-    # Create LAB Image
-    # -----------------------------
-    lab_output = np.zeros((IMG_SIZE, IMG_SIZE, 3), dtype=np.float32)
-
-    lab_output[:, :, 0] = L
-
-    lab_output[:, :, 1:] = prediction
+    output_lab[:, :, 0] = L
+    output_lab[:, :, 1:] = pred
 
     # LAB -> RGB
-    colorized = cv2.cvtColor(lab_output.astype(np.float32), cv2.COLOR_LAB2RGB)
+    colorized = cv2.cvtColor(output_lab, cv2.COLOR_LAB2RGB)
 
     colorized = np.clip(colorized, 0, 1)
-
     colorized = (colorized * 255).astype(np.uint8)
 
-    # -----------------------------
-    # Display
-    # -----------------------------
+    # Display Images
     col1, col2 = st.columns(2)
 
     with col1:
         st.subheader("Uploaded Image")
-        st.image(image, use_container_width=True)
+        st.image(image, width=500)
 
     with col2:
         st.subheader("Colorized Image")
-        st.image(colorized, use_container_width=True)
+        st.image(colorized, width=500)
 
-    # -----------------------------
-    # Download
-    # -----------------------------
-    output = Image.fromarray(colorized)
+    # Download Image
+    output_image = Image.fromarray(colorized)
+
+    buffer = BytesIO()
+    output_image.save(buffer, format="PNG")
+    buffer.seek(0)
 
     st.download_button(
         label="📥 Download Colorized Image",
-        data=output.tobytes(),
+        data=buffer,
         file_name="colorized_image.png",
         mime="image/png"
     )
