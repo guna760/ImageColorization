@@ -18,8 +18,8 @@ history = model.fit(
     X_train,
     Y_train,
     validation_data=(X_val, Y_val),
-    epochs= 1,
-    batch_size=1
+    epochs= 50,
+    batch_size=4
 )
 
 model.save("models/colorization_model.h5")
